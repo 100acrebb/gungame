@@ -6,12 +6,17 @@ if CLIENT then
 	include("mapvote/cl_mapvote.lua")
 	include("mapvote/mapvote.lua")
 end
+
+
 ROUND_SPLODE = 1
 ROUND_BARREL = 2
+ROUND_BOOTY = 3 -- Don't ask
+ROUND_ROYALE = 4
+include("language/misc_strings.lua")
+AddCSLuaFile("language/misc_strings.lua")
 
 function GM:Initialize()
 	self.BaseClass.Initialize( self )
-	
 end
 
 team.SetUp(0,"Gaymers",Color(255, 0, 0))
@@ -20,6 +25,7 @@ cvars.AddChangeCallback( "gy_rounds", function( convar_name, oldValue, newValue 
 	print(convar_name,oldValue,newValue)
 end )
 
+-- For use when someone joins to set their level so they don't start way behind
 function LowestLevel(plyignore)
 	local low = math.huge
 	local count = 0
@@ -33,9 +39,7 @@ function LowestLevel(plyignore)
 			end
 		end
 	end
-	
-	print(low,count)
-	
+
 	if count > 0 then
 		return low
 	else
@@ -48,11 +52,6 @@ Alright, this is about to get really messy
 The following is pretty much going to be all the stuff that happens on kill
 */
 function OnKill( victim, weapon, killer )
-
-	if killer:GetNWInt("lifelevel") == 2 then
-		local sound = table.Random(killstreaksound)
-		killer:EmitSound(sound,400)
-	end
 	if GetGlobalInt("gy_special_round") == ROUND_SPLODE then
 		if !((weapon:GetClass() == "gy_crowbar") or (weapon:GetClass() == "gy_knife")) then
 			local explode = ents.Create( "env_explosion" ) -- creates the explosion
@@ -64,12 +63,13 @@ function OnKill( victim, weapon, killer )
 			explode:Fire( "Explode", 0, 0 )
 		end
 	end
-
+	
 	timer.Simple(.1,function() victim:Extinguish() end)
 	local prevlev = killer:GetNWInt("level") --Define the killer's level for convienence
 	local wep = weplist[prevlev]
 	victim.NextSpawnTime = CurTime() + 4
 	victim.DeathTime = CurTime()
+	
 	if weapon:GetClass() == "gy_crowbar" then
 		RoundEnd(killer)
 	end
@@ -78,14 +78,18 @@ function OnKill( victim, weapon, killer )
 	if victim == killer or not IsValid(killer) then --If you kill yourself/Fall to your death (I *think* no wep=fall basically)
 		victim:Demote()
 	else --Else, if someone else killed you
+		if killer:GetNWInt("lifelevel") == 2 then
+			local sound = table.Random(killstreaksound)
+			killer:EmitSound(sound)
+		end
 		if (prevlev) > count() and GetGlobalInt("RoundState") == 1 then --If the killer's level is higher than the gun total...
-			print("TestDone")
 			RoundEnd(killer) --and we're still in round, finish the round
 		elseif prevlev <= count() then --Or if it's just a normal kill, give them a level and their guns
-			--SendDeathMessage(victim,killer:GetActiveWeapon().Class,killer)
 			if killer:GetActiveWeapon().Class == "gy_knife" then
 				victim:Demote()
+				killer:ChangeStat("gy_stabs",1)
 			end
+			killer:ChangeStat("gy_kills",1)
 			killer:SetNWInt("level",prevlev+1)
 			killer:SetNWInt("lifelevel",(killer:GetNWInt("lifelevel")+1))
 			timer.Simple(.01,function() killer:GiveWeapons() end)
@@ -93,12 +97,15 @@ function OnKill( victim, weapon, killer )
 		end
 		LevelMsg(killer,(prevlev+1),GetGlobalInt("RoundState")) 
 	end
+
+
+	killer:ChangeStat("gy_deaths",1)
+	
 	VoiceOnKill(victim, weapon, killer)
 	if killer:GetNWInt("lifelevel") == 3 then
 		killer:KillStreak()
 	end
 	DeathTicker(victim, weapon, killer)
-	
 end
 hook.Add( "PlayerDeath", "playerDeathTest", OnKill )
 
@@ -154,14 +161,14 @@ function DeathTicker( Victim, Inflictor, Attacker )
 	MsgAll( Victim:Nick() .. " was killed by " .. Attacker:GetClass() .. "\n" )
 	
 end
---hook.Add( "PlayerDeath", "playerDeathTest", DeathTicker )
 
 --Will message the killer his level and stuff
 function LevelMsg(killer,level,RoundState)
 	local wep = weplist[level]
 		
 	if wep == nil and (RoundState == 1) then --If you didn't, you must be on knife level, so you get this message
-		PrintMessage(HUD_PRINTCENTER, (killer:GetName().." is on knife level!"))
+		PrintMessage(HUD_PRINTCENTER, (killer:GetName().." is on crowbar level!"))
+		GAMEMODE:SetPlayerSpeed(killer, 250, 480) --Cheap fix for the crowbar speed bug
 	end
 end
 
@@ -172,11 +179,3 @@ function SendDeathMessage(victim,weapon,killer)
 		umsg.String (killer:GetName())
 	umsg.End()
 end
-	
-function RespawnMedkit(pos)
-	timer.Simple(GetConVar("gy_pickup_respawntime"):GetInt() or 25,function()
-		local ent = ents.Create("gy_medkit")
-		ent:SetPos(pos)
-		ent:Spawn()
-	end)
-end	

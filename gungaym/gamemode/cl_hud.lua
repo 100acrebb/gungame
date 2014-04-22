@@ -12,6 +12,7 @@ elseif (ScrW() / ScrH()) == 16/9 then
 elseif (ScrW() / ScrH()) == 4/3 then
 	asp = 1.0785
 end
+--If you don't have one of these aspect ratios, then you're SOL
 
 
 
@@ -59,6 +60,13 @@ function InitializeFonts()
 	)
 
 	surface.CreateFont( "nextweapon",
+	{
+	font      = "Tahoma",
+	size      = ScreenScale(12),
+	weight    = 500
+	}	)
+	
+	surface.CreateFont( "specround",
 	{
 	font      = "Tahoma",
 	size      = ScreenScale(12),
@@ -118,7 +126,7 @@ function DrawHUD()
 	level = ply:GetNWInt("level")
 	if ply:Alive() then
 	
-		if GetConVarNumber("gy_nextwep_enabled") == 1 then
+		if GetConVarNumber("gy_nextwep_enabled") == 1 and GetGlobalInt("gy_special_round") ~= ROUND_ROYALE then
 			if lasttime == nil or lasttime < CurTime() - (GetConVarNumber("gy_nextwep_delay")) then
 				lasttime = CurTime()
 				cl_PrevNextWeps(level)
@@ -169,6 +177,14 @@ function DrawHUD()
 	end
 		
 	draw.SimpleTextOutlined(("Round "..round.."/"..maxrounds) ,"reservedammo", ScrW()/10, ScrH()/1.015, Color(255,255,255), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,1,Color(74,74,74))
+	
+	local spec = GetGlobalVar("gy_special_round")
+	if spec ~= 0 then
+		local text = L.Round[spec]
+		if text ~= nil then
+			draw.SimpleTextOutlined(("Special Round: "..text) ,"specround", ScrW()/1.1, ScrH()/1.013, Color(255,255,255), TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP,1,Color(74,74,74))
+		end
+	end
 end
 
 hook.Add("HUDPaint","DrawHUD",DrawHUD)

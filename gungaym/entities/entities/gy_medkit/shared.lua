@@ -20,20 +20,25 @@ function ENT:RealInit() end -- bw compat
 -- Subclasses can easily call this whenever they want to
 function ENT:Initialize()
    self:SetModel( self.Model )
-
-   self:PhysicsInit( SOLID_VPHYSICS )
-   self:SetMoveType( MOVETYPE_VPHYSICS )
+   self.h = 0
+   self:PhysicsInit( SOLID_BBOX )
+   self:SetMoveType( MOVETYPE_NONE )
    self:SetSolid( SOLID_BBOX )
 
    self:SetCollisionGroup( COLLISION_GROUP_WORLD)
-   local b = 35
+   local b = 40
    self:SetCollisionBounds(Vector(-b, -b, -b), Vector(b,b,b))
    if SERVER then
       self:SetTrigger(true)
    end
 	
+	
    self.taken = false
    self.pos = self:GetPos()
+   self.pos = Vector(self.pos.x,self.pos.y,self.pos.z )
+   self:SetPos(self.pos)
+   
+   self:SetModelScale( self:GetModelScale() * 1.25, 0 )
    -- this made the ammo get physics'd too early, meaning it would fall
    -- through physics surfaces it was lying on on the client, leading to
    -- inconsistencies
@@ -63,7 +68,7 @@ end
 function ENT:Touch(ent)
    if SERVER and self.taken != true then
       if (ent:IsValid() and ent:IsPlayer())  then
-
+		print(self:GetAngles())
          local health = ent:Health()
 		 
 		 if GetConVar("gy_overheal_enabled"):GetBool() then
@@ -72,13 +77,17 @@ function ENT:Touch(ent)
 			max = 100
 		end
 		
-         if health < max then
+		ent:Extinguish()
+		
+         if health < max-25 then
 			ent:SetHealth(math.Min(health + 50, max))
 			ent:EmitSound("items/smallmedkit1.wav",150,130)
 			RespawnMedkit(self.pos)
             self:Remove()
             -- just in case remove does not happen soon enough
             self.taken = true
+		else
+			ent:EmitSound("items/medshotno1.wav",150,30)
          end
       end
    end
@@ -87,14 +96,12 @@ end
 -- Hack to force ammo to physwake
 if SERVER then
    function ENT:Think()
-      if not self.first_think then
-         self:PhysWake()
-         self.first_think = true
-
-         -- Immediately unhook the Think, save cycles. The first_think thing is
-         -- just there in case it still Thinks somehow in the future.
-         self.Think = nil
-      end
-   end
+		self.h = self.h + 1
+		local ang = self:GetAngles()
+		ang:RotateAroundAxis(ang:Up(), ang.p + 20)
+		self:SetAngles(ang)
+		
+		local pos = self:GetPos()
+		self:SetPos(Vector(pos.x,pos.y,pos.z + math.sin(self.h) * 3))
+	end
 end
-

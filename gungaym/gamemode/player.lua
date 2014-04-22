@@ -3,8 +3,34 @@ local ply = FindMetaTable("Player")
 local teams = {}
 teams[0] = {name = "Gaymers"}
 
+function ply:ChangeStat(stat,num)
+	local prevstat = self:GetPData(stat)
+	if prevstat == nil then
+		self:SetPData(stat,num)
+	else
+		self:SetPData(stat,prevstat + num)
+	end
+end
+
+function yes(ply)
+
+end
+
 function GM:ScalePlayerDamage( ply, hitgroup, dmginfo )
 	// More damage if we're shot in the head
+	if hitgroup == HITGROUP_HEAD then
+		dmginfo:GetAttacker():SendLua('surface.PlaySound("player/bhit_helmet-1.wav")')
+		timer.Simple(-1,function() 
+			ply:EmitSound("player/bhit_helmet-1.wav", 511, 100)
+			for x = 1,200 do
+				local effectdata2 = EffectData()
+				effectdata2:SetStart(ply:GetBonePosition(6))
+				effectdata2:SetOrigin(ply:GetBonePosition(6))
+				effectdata2:SetScale(100)
+				util.Effect("StunstickImpact", effectdata2)
+			end
+		end)
+	end
 	
 		if ply:Crouching() then
 			math.ceil(dmginfo:ScaleDamage( 0.55 ))
@@ -22,15 +48,17 @@ function GM:ScalePlayerDamage( ply, hitgroup, dmginfo )
 		 hitgroup == HITGROUP_RIGHTARM || 
 		 hitgroup == HITGROUP_LEFTLEG ||
 		 hitgroup == HITGROUP_RIGHTLEG ||
-		 hitgroup == HITGROUP_GEAR ) and (dmginfo:GetInflictor():GetClass() ~= "gy_python") then
-			dmginfo:ScaleDamage( 0.25 )
+		 hitgroup == HITGROUP_GEAR ) then
+			if (dmginfo:GetInflictor():GetClass() ~= "gy_python") and (dmginfo:GetInflictor():GetClass() ~= "gy_deagle") then
+				dmginfo:ScaleDamage( 0.25 )
+			end
 	 end
 
 end
 
 function ply:KillStreak()
 	self:SetNWInt("lifelevel",0)
-	
+	self:AwardPerk()
 	GAMEMODE:SetPlayerSpeed(self, 550, 550)
 	self:SetJumpPower( 300 )
 	self:SetNWBool("boosted",true)
@@ -63,6 +91,13 @@ function ply:SetGod(b)
 end
 
 function ply:GiveWeapons()
+	if GetGlobalInt("gy_special_round") == ROUND_ROYALE then 
+		local wep = table.Random(weplist)
+			self:StripWeapons()
+			self:Give("gy_knife")
+			self:Give(wep)
+			self:SelectWeapon(wep)
+	return end
 	self:StripWeapons()
 	
 	local y = self:GetNWInt("level")
@@ -94,11 +129,11 @@ function ply:GiveWeapons()
 end 
 
 function GM:GetFallDamage( ply, speed )
-	return speed/20 --Top of GM13's Flatgrass deals about 39 damage
+	return speed/50 --Random num pulled out of my ass
 end
 
 function GM:PlayerDeathThink( pl )
-
+	if GetGlobalInt("gy_special_round") == ROUND_ROYALE then return end
 	if (  pl.NextSpawnTime && pl.NextSpawnTime > CurTime() ) or (GetGlobalInt("RoundState") == 2) then return end
 
 	if ( pl:KeyPressed( IN_ATTACK ) || pl:KeyPressed( IN_ATTACK2 ) || pl:KeyPressed( IN_JUMP ) ) then

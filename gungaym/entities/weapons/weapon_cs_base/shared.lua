@@ -66,12 +66,52 @@ SWEP.RunPenalty				= 1.5
 SWEP.AimBoost				= .5
 SWEP.HeadshotMult 			= 2
 SWEP.Spray 					= 10
+SWEP.SprayDecay 			= 2
+SWEP.ReloadMult				= 1
+SWEP.LeftTend				= 1
+SWEP.RightTend				= 1
 
+SWEP.Rambo					= true
+
+SWEP.ohmy = false
+SWEP.goo = false
+		
+--Makes it so that when you fire for an extended period of time (gy_rambo_threshold)
+--Your guy will give a rambo-like yell, like in MGS3 (doesn't actually use a rambo sound)
+function SWEP:RamboCheck()	
+	if CLIENT then return end
+	if self.Rambo == false then return end
+	if not self.Primary.Automatic then return end
+	
+	if self.Owner:KeyDown(IN_ATTACK) and ( self:Clip1() > 0 ) then
+		local LastShot = self.Owner:GetNWFloat("LastShot")
+		if (LastShot == 0) then
+			self.Owner:SetNWFloat("LastShot", CurTime())
+		else
+			if (LastShot + GetConVar("gy_rambo_threshold"):GetInt()) < CurTime() then
+				if not self.ohmy then
+					self.ohmy = true
+					timer.Simple(0.9, function() self.goo = true end)
+					self.Owner:EmitSound("gy/omg1.wav")
+				elseif self.goo then
+					self.goo = false
+					timer.Simple(0.9, function() self.goo = true end)
+					self.Owner:EmitSound("gy/omg2.wav")
+				end
+			end
+		end
+	else
+		if self.goo then
+			self.Owner:EmitSound("gy/omg3.wav")
+		end
+		self.Owner:SetNWFloat("LastShot", 0)
+		self.ohmy = false
+		self.goo = false
+	end
+end
 
 function SWEP:SetupDataTables()
-
 	self:DTVar( "Bool", 0, "Ironsight" )
-
 end
 
 function SWEP:OnRestore()
@@ -83,8 +123,6 @@ end
 /*---------------------------------------------------------
 ---------------------------------------------------------*/
 function SWEP:Initialize()
-
-
 	if ( SERVER ) then
 		self:SetNPCMinBurst( 30 )
 		self:SetNPCMaxBurst( 30 )
@@ -93,17 +131,55 @@ function SWEP:Initialize()
 	
 	self:SetWeaponHoldType( self.HoldType )
 	self.dt.Ironsight = false
-	
+	self:SetNWFloat("SprayAdditive",0)
 end
 
 
-/*---------------------------------------------------------
-	Reload does nothing
----------------------------------------------------------*/
 function SWEP:Reload()
-	self.Weapon:DefaultReload( ACT_VM_RELOAD );
-	--self:SetIronsights( false )
-	--self.Owner:SetFOV(0, self.ZoomTime or .5)
+	if CLIENT then return end
+	if not ((self.Weapon:GetNextPrimaryFire() <= CurTime()) or not (self.Weapon:GetNextSecondaryFire() <= CurTime())) then return end
+	if ((self.Owner:GetAmmoCount(self.Primary.Ammo) < 1) or (self.Weapon:Clip1() == self.Primary.ClipSize)) then return end
+	if self.Weapon:GetNWBool("Reloading") then return end
+	
+	local rate = 1 * self.ReloadMult
+	if self.Owner:GetNWBool("fastreload") then
+		rate = GetConVar("gy_perk_soh_mult"):GetFloat() * self.ReloadMult
+	end
+	self.Weapon:SetNWBool("Reloading", true)
+	local viewm = self.Owner:GetViewModel()
+	
+	self.Weapon:SendWeaponAnim(ACT_VM_RELOAD)
+	self.Owner:GetViewModel():SetPlaybackRate(rate)
+	num = viewm:SequenceDuration()
+	self.Owner:DoReloadEvent()
+	
+	local oldres = self.Owner:GetAmmoCount(self.Primary.Ammo)
+	local mag = self.Weapon:Clip1()
+	local magsize = self.Primary.ClipSize
+	
+	bullets = math.Clamp(magsize - mag,0,magsize)
+	
+	self.Weapon:SetClip1(0)
+	self.Owner:GiveAmmo((mag),self.Primary.Ammo,true)
+	self.Weapon:SetNWBool("Switched", false)
+	
+	local time = num/rate 
+	
+	local reserve = self.Owner:GetAmmoCount(self.Primary.Ammo)
+	local new = math.Clamp(reserve, 0, magsize)
+	timer.Simple(time,function() 
+		if not IsValid(self.Weapon) then return end
+		if not IsValid(self.Owner ) then return end
+		if self.Owner:GetActiveWeapon() ~= self.Weapon then return end
+		if self.Weapon:GetNWBool("Switched") then return end
+		self.Weapon:SetClip1(new)
+		self.Owner:RemoveAmmo(new,self.Primary.Ammo) 
+		self.Weapon:SetNWBool("Reloading", false)
+		self.Weapon:SetNWBool("Switched", false)
+	end)
+	
+	self:SetNextPrimaryFire(CurTime() + time)
+	self:SetNextSecondaryFire(CurTime() + time)
 end
 
 
@@ -111,6 +187,13 @@ end
 IronSight (stolen from m9k)
 ---------------------------------------------------------*/
 function SWEP:IronSight()
+	local SprayAdditive = self:GetNWFloat("SprayAdditive")
+	if self.Owner:KeyReleased(IN_ATTACK) and SprayAdditive ~= nil and not HaltSub then
+		self:SetNWFloat("SprayAdditive",SprayAdditive * .25)
+		HaltSub = true
+		timer.Simple(.5, function() HaltSub = false end)
+	end
+
 	local speed1 = 0
 	local speed2 = 0
 
@@ -122,14 +205,13 @@ function SWEP:IronSight()
 		speed2 = 350
 	end
 	
-	
-	if self.Owner:KeyPressed(IN_ATTACK2) and not (self.Weapon:GetNWBool("Reloading")) and (!self.Owner:KeyDown(IN_RELOAD) or (self.Weapon:Clip1() ~= self.Primary.ClipSize)) then
+	if ((self.Owner:KeyDown(IN_RELOAD) and (self.Weapon:Clip1() ~= self.Primary.ClipSize)) or (self.Weapon:Clip1() <= 0)) and (self.Owner:GetAmmoCount( self.Primary.Ammo ) > 0) then
+		self:SetIronsights( false )
+		self.Owner:SetFOV(0, 0)
+	elseif self.Owner:KeyPressed(IN_ATTACK2) and not self.Weapon:GetNWBool("Reloading") and (!self.Owner:KeyDown(IN_RELOAD) or (self.Weapon:Clip1() ~= self.Primary.ClipSize)) then
 		self:SetIronsights(true)
 		self.Owner:SetFOV(self.ZoomFOV or 80, self.ZoomTime or .03)
 		GAMEMODE:SetPlayerSpeed(self.Owner, speed1, speed1)
-	elseif ((self.Owner:KeyDown(IN_RELOAD) and (self.Weapon:Clip1() ~= self.Primary.ClipSize)) or (self.Weapon:Clip1() <= 0)) and (self.Owner:GetAmmoCount( self.Primary.Ammo ) > 0) then
-		self:SetIronsights( false )
-		self.Owner:SetFOV(0, self.ZoomTime or .03)
 	elseif self.Owner:KeyDown(IN_SPEED) and not self.Owner:KeyDown(IN_ATTACK2) then
 		GAMEMODE:SetPlayerSpeed(self.Owner, speed1, speed2)
 	elseif self.Owner:KeyPressed(IN_ATTACK2) and !self.Owner:KeyDown(IN_SPEED) then 
@@ -137,7 +219,6 @@ function SWEP:IronSight()
 		self.Owner:SetFOV(self.ZoomFOV or 80, self.ZoomTime or .03)
 	end
 
-	
 	if self.Owner:KeyReleased(IN_ATTACK2) then
 		self.Crosshair = true
 		self:SetIronsights(false)
@@ -153,15 +234,13 @@ function SWEP:IronSight()
 			self.BobScale 	= 1.0
 		end
 end
-/*---------------------------------------------------------
-IronSight
----------------------------------------------------------*/
 
 /*---------------------------------------------------------
    Think does nothing (jklol)
 ---------------------------------------------------------*/
 function SWEP:Think()	
 	self:IronSight()
+	self:RamboCheck()
 end
 
 
@@ -171,16 +250,26 @@ end
 function SWEP:PrimaryAttack()
 	local recoil = self.Primary.Recoil
 	local cone = self.Primary.Cone
-
-	self.Weapon:SetNextSecondaryFire( CurTime() + self.Primary.Delay )
-	self.Weapon:SetNextPrimaryFire( CurTime() + self.Primary.Delay )
+	local delay = self.Primary.Delay
+	local shots = self.Primary.NumShots
+	
+	if self.Owner:GetNWBool("doubletap") then
+		delay = self.Primary.Delay / 2
+		shots = self.Primary.NumShots * 2
+	end
+	
+	self.Weapon:SetNextSecondaryFire( CurTime() + delay )
+	self.Weapon:SetNextPrimaryFire( CurTime() + delay )
 	
 	if ( !self:CanPrimaryAttack() ) then return end
-	if  self:GetNWBool("reloading") then return end
+	if  self:GetNWBool("reloading") then return end --WHERE THE ACTUAL SHOOTY BITS BEGIN
 	
 	// Play shoot sound
-	self.Weapon:EmitSound( self.Primary.Sound )
-	
+	if GetGlobalInt("gy_special_round") == ROUND_BOOTY then
+		self.Weapon:EmitSound( "ericisgay/sillyblacks.wav")
+	else
+		self.Weapon:EmitSound( self.Primary.Sound )
+	end
 	
 	if self.dt.Ironsight then
 		recoil =  recoil * (self.AimBoost or .75)
@@ -194,8 +283,15 @@ function SWEP:PrimaryAttack()
 		self.Owner:SetGod(false)
 	end
 	
+	--This will measure how many shots have been fired in the last second (or whatever SprayDecay is)
+	--for use when calculating spray (more shots = more spray)
+	self:SetNWFloat("SprayAdditive",self:GetNWFloat("SprayAdditive") + 1 )
+	timer.Simple(self.SprayDecay, function() if IsValid(self) then self:SetNWFloat("SprayAdditive",math.max(0, self:GetNWFloat("SprayAdditive") - 1)) end end)
+	
+	
+	recoil = recoil * (self:GetNWFloat("SprayAdditive") ^ .2)
 	// Shoot the bullet
-	self:CSShootBullet( self.Primary.Damage, recoil, self.Primary.NumShots, cone )
+	self:CSShootBullet( self.Primary.Damage, recoil, shots, cone )
 	
 	// Remove 1 bullet from our clip
 	self:TakePrimaryAmmo( 1 )
@@ -203,7 +299,7 @@ function SWEP:PrimaryAttack()
 	if ( self.Owner:IsNPC() ) then return end
 	
 	// Punch the player's view
-	self.Owner:ViewPunch( Angle( math.Rand(-0.2,-0.1) * self.Primary.Recoil, math.Rand(-0.1,0.1) * self.Primary.Recoil, 0 ) )
+	self.Owner:ViewPunch( Angle( math.Rand(-0.1,0.1) * recoil, math.Rand(-0.1 * self:GetNWFloat("SprayAdditive") ^ .5 ,0.1 * self:GetNWFloat("SprayAdditive") ^ .5) * recoil, 0 ) )
 	
 	// In singleplayer this function doesn't get called on the client, so we use a networked float
 	// to send the last shoot time. In multiplayer this is predicted clientside so we don't need to 
@@ -214,6 +310,7 @@ function SWEP:PrimaryAttack()
 	
 end
 
+
 /*---------------------------------------------------------
    Name: SWEP:CSShootBullet( )
 ---------------------------------------------------------*/
@@ -222,30 +319,41 @@ function SWEP:CSShootBullet( dmg, recoil, numbul, cone )
 	numbul 	= numbul 	or 1
 	cone 	= cone 		or 0.01
 	
+	local conemult = 4 --Needed to offset the extra viewpunch
+	
 	local ang = self.Owner:GetAimVector()
 	local pun = self.Owner:GetPunchAngle():Forward()
 	local spray = self.Spray
 	
 	iron = ( self.dt.Ironsight )
 	if iron then
-		spray = spray * .5
+		spray = spray * .25
+	end
+	
+	if self.Owner:GetNWBool("deadeye") then
+		spray = 0
+		cone = cone * .65
+		recoil = recoil * .5
 	end
 	
 	if spray > 0 then
-		ang = Vector(ang.x, ang.y, ang.z + math.abs(pun.y) * spray)
+		ang = Vector(ang.x, ang.y, ang.z + (math.abs(self:GetNWFloat("SprayAdditive"))* .001 * spray))
 	end
 
 	local bullet = {}
 	bullet.Num 		= numbul
 	bullet.Src 		= self.Owner:GetShootPos()			// Source
 	bullet.Dir 		= ang		// Dir of bullet
-	bullet.Spread 	= Vector( cone*4, cone, 0 )			// Aim Cone
-	bullet.Tracer	= 4									// Show a tracer on every x bullets 
+	bullet.Spread 	= Vector( cone*conemult, cone, 0 )			// Aim Cone
+	bullet.Tracer	= 1									// Show a tracer on every x bullets 
 	bullet.Force	= 1000									// Amount of force to give to phys objects
 	bullet.Damage	= dmg
 	
 	self.Owner:FireBullets( bullet )
 	self.Weapon:SendWeaponAnim( ACT_VM_PRIMARYATTACK ) 		// View model animation
+	if self.Owner:GetNWBool("doubletap") then
+		self.Owner:GetViewModel():SetPlaybackRate(2)
+	end
 	self.Owner:MuzzleFlash()								// Crappy muzzle light
 	self.Owner:SetAnimation( PLAYER_ATTACK1 )				// 3rd Person Animation
 	
@@ -254,12 +362,14 @@ function SWEP:CSShootBullet( dmg, recoil, numbul, cone )
 	// CUSTOM RECOIL !
 	if ( (game.SinglePlayer() && SERVER) || ( !game.SinglePlayer() && CLIENT && IsFirstTimePredicted() ) ) then
 		local eyeang = self.Owner:EyeAngles()
-		eyeang.pitch = eyeang.pitch - recoil * 1
+		eyeang.pitch = eyeang.pitch - recoil
+		eyeang.yaw = eyeang.yaw + recoil * math.Rand(-self.RightTend, self.LeftTend) * (self:GetNWFloat("SprayAdditive") * .05)
 		self.Owner:SetEyeAngles( eyeang )
 	
 	end
 
 end
+
 
 /*---------------------------------------------------------
 	Checks the objects before any action is taken
@@ -326,22 +436,17 @@ function SWEP:GetViewModelPosition( pos, ang )
 		ang:RotateAroundAxis( ang:Right(), 		self.IronSightsAng.x * Mul )
 		ang:RotateAroundAxis( ang:Up(), 		self.IronSightsAng.y * Mul )
 		ang:RotateAroundAxis( ang:Forward(), 	self.IronSightsAng.z * Mul )
-	
-	
 	end
 	
 	local Right 	= ang:Right()
 	local Up 		= ang:Up()
 	local Forward 	= ang:Forward()
-	
-	
 
 	pos = pos + Offset.x * Right * Mul
 	pos = pos + Offset.y * Forward * Mul
 	pos = pos + Offset.z * Up * Mul
 
 	return pos, ang
-	
 end
 
 
@@ -359,6 +464,7 @@ SWEP.NextSecondaryAttack = 0
 
 function SWEP:SecondaryAttack()
 end
+
 
 function SWEP:DrawHUD()
 	local iron = self.Weapon.dt.Ironsight
@@ -382,7 +488,7 @@ function SWEP:DrawHUD()
 		x, y = ScrW() / 2.0, ScrH() / 2.0
 	end
 
-	scale = 20 * self.Primary.Cone
+	scale = 30 * self.Primary.Cone
 
 	// Scale the size of the crosshair according to how long ago we fired our weapon
 	local LastShootTime = self.Weapon:GetNetworkedFloat( "LastShootTime", 0 )
@@ -392,6 +498,10 @@ function SWEP:DrawHUD()
 		scale = scale * (self.RunPenalty or 1.5)
 	end
 	
+	if self.Owner:GetNWBool("deadeye") then
+		scale = scale * .65
+	end
+	
 	surface.SetDrawColor( 0, 255, 0, 255 )
 	
 	// Draw an awesome crosshair
@@ -399,7 +509,7 @@ function SWEP:DrawHUD()
 	local length = gap + 20 * scale
 	surface.DrawLine( x - length, y, x - gap, y )
 	surface.DrawLine( x + length, y, x + gap, y )
-	surface.DrawLine( x, y - length, x, y - gap )
+	surface.DrawLine( x, y - length * math.max(1, self:GetNWFloat("SprayAdditive")*.1), x, y - gap )
 	surface.DrawLine( x, y + length, x, y + gap )
 
 end
@@ -416,6 +526,10 @@ function SWEP:OnRestore()
 	
 end
 
-function SWEP:OnDrop()
-   self:Remove()
+
+function SWEP:Holster()
+	--if self.Weapon:GetNWBool("Reloading") then return false else return true end //If you want to prevent switching while reloading
+	self.Weapon:SetNWBool("Reloading", false)
+	self.Weapon:SetNWBool("Switched", true)
+	return true
 end

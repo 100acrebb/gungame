@@ -2,21 +2,33 @@
 0 = Pre-round freeze
 1 = In round
 2 = Post round (The winner is slaughtering everyone)
-3 = End of the game?
+3 = We don't talk about round state 3
 */
 
-function SpecialRound()
+function SpecialRound(force)
 	if GetConVar("gy_special_rounds"):GetInt() == 0 then return end
-	local rounds = {ROUND_SPLODE,ROUND_BARREL}
-	local roll = math.Rand(1,2) --1/2 chance
-	local selection = 0
-	
-	if roll == 1 then
+	if true then return end--The lazy man's way of commenting out
+	local rounds = {ROUND_SPLODE,ROUND_BARREL,ROUND_ROYALE,ROUND_BOOTY}
+
+	if force ~= nil then
+		if force == 0 then
+			selection = 0
+		else
+			selection = rounds[force]
+		end
+	else
 		selection = table.Random(rounds)
-		print("Special round! Code "..selection)
+		if (selection == ROUND_ROYALE) and (#player.GetAll() < 2) then
+			SpecialRound()
+			return
+		end
 	end
 	
+	print("Special round! "..L.Round[selection])
+	PrintMessage(HUD_PRINTTALK,"--"..L.RoundDesc[selection].."--")
+	
 	SetGlobalInt("gy_special_round",selection)
+	SetGlobalBool("LastSpec",true)
 end
 
 function RoundStart()
@@ -26,16 +38,13 @@ function RoundStart()
 	round = GetGlobalInt("round")
 	SetGlobalInt("round", round+1)
 	RandomizeWeapons()
-	SpecialRound()
-	/*local SR_go = math.random(1,1)
-	if SR_go == 1 then
-		SpecialRandom()
-		print("Special Round!")
-		--for k,v in pairs(SpecialRound) do
-			--print(k,v)
-		--end
-	end*/
 	
+	if math.random(1,5) == 1 then
+		SpecialRound()
+	else
+		SetGlobalInt("gy_special_round",0)
+		SetGlobalBool("LastSpec",false)
+	end
 	for k,v in pairs(player.GetAll()) do
 		net.Start("wepcl")
 			net.WriteTable(weplist)
@@ -56,22 +65,29 @@ function RoundStart()
 end
 
 function RoundEnd(winner)
+	if winner == 99 then
+		PrintMessage(HUD_PRINTCENTER, ("Good job, you all fucked up!"))
+	else	
+		for k,v in pairs(player.GetAll()) do
+			if v ~= winner then
+				v:StripWeapons()
+			end
+		end
+		winner:Give("func_gy_wingun")
+		winner:SelectWeapon("func_gy_wingun")
+		PrintMessage(HUD_PRINTCENTER, (winner:GetName().." won the round!"))
+	end
 	SetGlobalInt("MaxRounds", GetConVarNumber("gy_rounds"))
 	local maxround = GetGlobalInt("MaxRounds")
 	local round = GetGlobalInt("round")
-	for k,v in pairs(player.GetAll()) do
-		if v ~= winner then
-			v:StripWeapons()
-		end
-	end
-	winner:Give("func_gy_wingun")
-	winner:SelectWeapon("func_gy_wingun")
+
+
 	SetGlobalInt("RoundState", 2)
 	
-	PrintMessage(HUD_PRINTCENTER, (winner:GetName().." won the round!"))
+	
 
 	if round >= maxround then
-		timer.Simple(1, function() MapVote.Start(10, false, 12, {"gg_","dm_"}) end)
+		timer.Simple(1, function() MapVote.Start(10, false, 12, {"gg_","ttt_"}) end)
 	else
 		timer.Simple(8,function() RoundStart() end)
 	end

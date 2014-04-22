@@ -8,7 +8,7 @@ end
 
 if ( CLIENT ) then
 
-	SWEP.PrintName			= "M4 Carbonated"			
+	SWEP.PrintName			= "M4 Sherman"			
 	SWEP.Author				= "Counter-Strike"
 	SWEP.Slot				= 3
 	SWEP.SlotPos			= 1
@@ -33,11 +33,11 @@ SWEP.AutoSwitchTo		= false
 SWEP.AutoSwitchFrom		= false
 
 SWEP.Primary.Sound			= Sound( "Weapon_M4A1.Single" )
-SWEP.Primary.Recoil			= 1.5
-SWEP.Primary.Damage			= 30
+SWEP.Primary.Recoil			= 1
+SWEP.Primary.Damage			= 35
 SWEP.Primary.NumShots		= 1
-SWEP.Primary.Cone			= 0.017
-SWEP.Primary.ClipSize		= 25
+SWEP.Primary.Cone			= 0.007
+SWEP.Primary.ClipSize		= 20
 SWEP.Primary.Delay			= 0.1
 SWEP.Primary.DefaultClip	= 50
 SWEP.Primary.Automatic		= true
@@ -51,5 +51,10 @@ SWEP.Secondary.Ammo			= "none"
 SWEP.IronSightsPos 		= Vector( 6, 0, 0.95 )
 SWEP.IronSightsAng 		= Vector( 2.6, 1.37, 3.5 )
 
-SWEP.Spray				= 17
+SWEP.Spray				= 5
+SWEP.SprayDecay			= 1.2
 SWEP.AimBoost			= .4
+
+SWEP.LeftTend	= 1.1
+SWEP.RightTend	= .4
+
