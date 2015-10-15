@@ -39,7 +39,7 @@ function RoundStart()
 	SetGlobalInt("round", round+1)
 	RandomizeWeapons()
 	
-	if math.random(1,5) == 1 then
+	if math.random(1,5) == 7 then -- never gonna happen!
 		SpecialRound()
 	else
 		SetGlobalInt("gy_special_round",0)
@@ -73,8 +73,8 @@ function RoundEnd(winner)
 				v:StripWeapons()
 			end
 		end
-		winner:Give("func_gy_wingun")
-		winner:SelectWeapon("func_gy_wingun")
+		--winner:Give("func_gy_wingun")
+		--winner:SelectWeapon("func_gy_wingun")
 		PrintMessage(HUD_PRINTCENTER, (winner:GetName().." won the round!"))
 	end
 	SetGlobalInt("MaxRounds", GetConVarNumber("gy_rounds"))
@@ -87,7 +87,8 @@ function RoundEnd(winner)
 	
 
 	if round >= maxround then
-		timer.Simple(1, function() MapVote.Start(10, false, 12, {"gg_","ttt_"}) end)
+		--timer.Simple(1, function() MapVote.Start(10, false, 12, {"gg_","ttt_"}) end)
+		timer.Simple(1, function() MapVote.Start() end)
 	else
 		timer.Simple(8,function() RoundStart() end)
 	end

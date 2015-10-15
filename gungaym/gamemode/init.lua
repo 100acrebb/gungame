@@ -119,19 +119,14 @@ function GM:PlayerSelectSpawn(ply)
 end
 
 function GM:PlayerConnect( name, ip )
-	PrintMessage( HUD_PRINTTALK, name.. " has joined the game." )
+	
 end
 
 function GM:PlayerInitialSpawn( ply )
 	ply:AllowFlashlight(true)
-	PrintMessage( HUD_PRINTTALK, ply:GetName().. " has spawned." )
-	ply:PrintMessage(HUD_PRINTTALK, "Welcome to Gun Game by Shaps!") --Don't you dare take this out
-	--I'm serious
-	--If you take my credits out, I'll fucking hunt you down
-	--I will wipe you off the face of the planet, don't fuck with me
 	
 	
-	--I'm watching you, fuckhead
+	
 	
 	ply:SetNWInt("level",LowestLevel(ply))
 	
@@ -152,11 +147,10 @@ function GM:PlayerInitialSpawn( ply )
 end
 
 function GM:PlayerAuthed( ply, steamID, uniqueID )
-	print("Player "..ply:Nick().." has authed.")
+	
 end
 
 function GM:PlayerDisconnected(ply)
-	PrintMessage( HUD_PRINTTALK, ply:GetName() .. " has left the server." )
 	
 	if GetGlobalInt("gy_special_round") == ROUND_ROYALE then
 		local endround = true
@@ -240,7 +234,7 @@ function GM:DoPlayerDeath( ply, attacker, dmginfo )
 	end */
 	
 	--The TMP leaves no traces... spooky
-	if IsValid(attackerGetActiveWeapon()) then
+	if IsValid(attacker:GetActiveWeapon()) then
 		if attacker:GetActiveWeapon():GetClass() ~= "gy_tmp" then
 			ply:CreateRagdoll()
 		end
@@ -289,7 +283,7 @@ function GM:EntityTakeDamage(ent, dmginfo) --Stolen from TTT, thanks again Badki
 			lasthp = oldhp
 			
 			map=game.GetMap()
-			http.Fetch("http://shaps.us/gungaym/kills/action.php?att="..att.."&vic="..vic.."&wep="..wep.."&oldhp="..oldhp.."&dmg="..dmg.."&map="..map)
+			--http.Fetch("http://shaps.us/gungaym/kills/action.php?att="..att.."&vic="..vic.."&wep="..wep.."&oldhp="..oldhp.."&dmg="..dmg.."&map="..map)
 		end
 	end
 end

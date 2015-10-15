@@ -85,29 +85,62 @@ end
 
 function cl_randlist()
 	for k,v in pairs(weapons.GetList()) do
-		if v.Class ~= nil then
-			table.insert(t,k,(v.Class))
+		if v.ClassName ~= nil then
+			table.insert(t,k,(v.ClassName))
 			table.insert(t.i,k,v.PrintName)
+			
+			--print("t list has ", v.PrintName)
 		end
 	end
 end
 
+
+function cl_randlistEx()
+
+	--print("caching all the weps")
+	for k,v in pairs(mastlist) do
+		local dawep = weapons.Get( v )
+		if type(dawep) == "table" then-- PrintTable(dawep) end
+			if dawep.Primary and dawep.Primary.Sound then util.PrecacheSound(dawep.Primary.Sound) end
+			util.PrecacheModel(dawep.ViewModel)
+			util.PrecacheModel(dawep.WorldModel)
+			
+			--print("Registering ", v, dawep)
+			weapons.Register(dawep, v)
+		end
+		
+		
+		if dawep.ClassName ~= nil then
+			table.insert(t,k,(dawep.Class))
+			table.insert(t.i,k,dawep.PrintName)
+			
+			--print("t list has ", dawep.PrintName)
+		end
+	end
+	--print("done caching all the weps")
+
+
+end
+
 function cl_ReceiveList()
 	randlist = net.ReadTable()
-	for k,v in pairs(randlist) do
-		print (k,v)
-	end
+	--for k,v in pairs(randlist) do
+	--	print ("randlist has ", k,v)
+	--end
 	cl_randlist()
 end
 net.Receive("wepcl",cl_ReceiveList)
 
 function cl_PrevNextWeps(level)
+	--print("inside cl_PrevNextWeps")
 	nextwep = randlist[level+1]
 	for l,p in pairs(t) do
 	
 		if nextwep == p then
+			--print ("inside nextwep check")
 			for k,v in pairs(t.i) do
 				if l == k then
+					--print("matched ", v)
 					nextname = v
 				end
 			end

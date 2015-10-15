@@ -14,6 +14,7 @@ function GM:HUDWeaponPickedUp( wep )
 
 	if (!LocalPlayer():Alive()) then return end
 	if not IsValid(wep) then return end
+	if not wep.GetPrintName then return end
 	if not wep:GetPrintName() then return end
 	if wep:GetPrintName() == "trans" then return end
 

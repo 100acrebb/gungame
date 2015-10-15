@@ -3,8 +3,8 @@ GM.Author = "Ericson777/Shaps"
 GM.Email = "s.fuller468@gmail.com"
 GM.Website = "" //RIP Goatse.cx
 if CLIENT then
-	include("mapvote/cl_mapvote.lua")
-	include("mapvote/mapvote.lua")
+	--include("mapvote/cl_mapvote.lua")
+	--include("mapvote/mapvote.lua")
 end
 
 
@@ -33,7 +33,7 @@ function LowestLevel(plyignore)
 	for k,v in pairs(player.GetAll()) do
 		if v ~= plyignore then
 			count = count + 1
-			local lev = v:GetNWBool("level")
+			local lev = v:GetNWInt("level")
 			if lev < low then
 				low = lev
 			end

@@ -119,13 +119,7 @@ function ply:GiveWeapons()
 		timer.Simple(.01,function() self:SelectWeapon("gy_crowbar");self:StripWeapon("func_gy_trans") end)
 	end
 	
-	if GetConVar("gy_cowa_birthday"):GetInt() == 1 then --Remove this before release
-		local num = self:SteamID() --If I put this in the public release, feel free to call me an idiot on steam!
-		if num == "STEAM_0:0:21836277" then
-			self:StripWeapons()
-			self:Give("cowa")
-		end
-	end
+	
 end 
 
 function GM:GetFallDamage( ply, speed )

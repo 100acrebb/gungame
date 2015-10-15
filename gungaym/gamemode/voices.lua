@@ -116,6 +116,13 @@ vo.KillUrslef = {
 	"ericisgay/voicesinmyhead/suicide06.wav"
 }
 
+for i,j in pairs(vo) do
+	for k,v in pairs(j) do
+		util.PrecacheSound( v )
+	end
+end
+
+
 function VoiceOnKill(victim, weapon, killer)
 	local chance = GetConVar("gy_killvoice_chance"):GetInt()
 	if chance < 1 then return end
