@@ -132,10 +132,16 @@ function VoiceOnKill(victim, weapon, killer)
 		case = vo.KillUrslef
 	else
 		weapon = killer:GetActiveWeapon()
-		if ((weapon:GetClass() == "gy_knife") or (weapon:GetClass() == "gy_crowbar")) then
-			case = vo.MeleeKill
-		else
-			case = vo.GenericKill
+		case = vo.GenericKill
+		
+		if (weapon ~= nil) then
+			if ((weapon:GetClass() == "gy_knife") or (weapon:GetClass() == "gy_crowbar")) then
+				case = vo.MeleeKill
+			end
+			
+			if weapon:GetClass() ~= "gy_tmp" then
+				victim:EmitSound(table.Random(vo.GenericDeath),150)
+			end
 		end
 		
 		local roll = math.random(1,chance or 6)
@@ -143,9 +149,7 @@ function VoiceOnKill(victim, weapon, killer)
 			timer.Simple(.5, function() killer:EmitSound(table.Random(case),150) end)
 		end
 		
-		if weapon:GetClass() ~= "gy_tmp" then
-			victim:EmitSound(table.Random(vo.GenericDeath),150)
-		end
+		
 	end
 	
 	if case == vo.KillUrslef then 
@@ -155,7 +159,7 @@ function VoiceOnKill(victim, weapon, killer)
 		if roll == 1 then
 			timer.Simple(.5, function() killer:EmitSound(table.Random(case),150) end)
 		end
-		print(roll)
+		--print(roll)
 	end
 	
 

@@ -234,7 +234,7 @@ function GM:DoPlayerDeath( ply, attacker, dmginfo )
 	end */
 	
 	--The TMP leaves no traces... spooky
-	if IsValid(attacker:GetActiveWeapon()) then
+	if attacker.GetActiveWeapon and IsValid(attacker:GetActiveWeapon()) then
 		if attacker:GetActiveWeapon():GetClass() ~= "gy_tmp" then
 			ply:CreateRagdoll()
 		end
