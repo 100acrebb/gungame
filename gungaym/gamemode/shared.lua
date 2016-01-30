@@ -98,8 +98,9 @@ function OnKill( victim, weapon, killer )
 		LevelMsg(killer,(prevlev+1),GetGlobalInt("RoundState")) 
 	end
 
-
-	killer:ChangeStat("gy_deaths",1)
+	if killer ~= nil then
+		killer:ChangeStat("gy_deaths",1)
+	end
 	
 	VoiceOnKill(victim, weapon, killer)
 	if killer:GetNWInt("lifelevel") == 3 then
