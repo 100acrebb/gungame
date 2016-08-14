@@ -85,20 +85,20 @@ function OnKill( victim, weapon, killer )
 		if (prevlev) > count() and GetGlobalInt("RoundState") == 1 then --If the killer's level is higher than the gun total...
 			RoundEnd(killer) --and we're still in round, finish the round
 		elseif prevlev <= count() then --Or if it's just a normal kill, give them a level and their guns
-			if killer:GetActiveWeapon().Class == "gy_knife" then
+			if killer.GetActiveWeapon and killer:GetActiveWeapon().Class == "gy_knife" then
 				victim:Demote()
 				killer:ChangeStat("gy_stabs",1)
 			end
-			killer:ChangeStat("gy_kills",1)
+			if killer.ChangeStat then killer:ChangeStat("gy_kills",1) end
 			killer:SetNWInt("level",prevlev+1)
 			killer:SetNWInt("lifelevel",(killer:GetNWInt("lifelevel")+1))
-			timer.Simple(.01,function() killer:GiveWeapons() end)
+			timer.Simple(.01,function() if killer.GiveWeapons then killer:GiveWeapons() end end)
 			--killer:GiveWeapons()
 		end
 		LevelMsg(killer,(prevlev+1),GetGlobalInt("RoundState")) 
 	end
 
-	if killer ~= nil then
+	if killer ~= nil and killer.ChangeStat then
 		killer:ChangeStat("gy_deaths",1)
 	end
 	

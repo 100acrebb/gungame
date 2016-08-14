@@ -1,4 +1,4 @@
-include("mapvote/mapvote.lua")
+--include("mapvote/mapvote.lua")
 AddCSLuaFile( "cl_init.lua" )
 AddCSLuaFile( "shared.lua" )
 AddCSLuaFile( "cl_hud.lua" )
@@ -6,7 +6,7 @@ AddCSLuaFile( "wepgen.lua" )
 AddCSLuaFile( "cl_scoreboard.lua" )
 AddCSLuaFile( "cl_deathnotices.lua" )
 AddCSLuaFile( "cl_hudpickup.lua" )
-AddCSLuaFile( "mapvote/mapvote.lua")
+--AddCSLuaFile( "mapvote/mapvote.lua")
 AddCSLuaFile( "mapvote/cl_mapvote.lua")
 include("shared.lua")
 include("entdel.lua")
@@ -65,12 +65,12 @@ function GM:Initialize( )
 	CreateConVar("gy_rambo_threshold", 3, {FCVAR_NOTIFY,FCVAR_ARCHIVE,FCVAR_SERVER_CAN_EXECUTE, FCVAR_CLIENTCMD_CAN_EXECUTE}, "After firing for X seconds, the player will start screaming")
 		
 	
-	SetGlobalInt("MaxRounds", GetConVarNumber("gy_rounds"))
+	SetGlobalInt("MaxRounds", GetConVar("gy_rounds"):GetInt())
 	SetGlobalInt("gy_special_round",0)
 	
-	SetGlobalInt("round",0)
+	--SetGlobalInt("round",0)
 	RoundStart()
-	SetGlobalInt("round",1) --Just to make sure the rounds are being set
+	--SetGlobalInt("round",1) --Just to make sure the rounds are being set
 end
 hook.Add("InitPostEntity", "StartupEntSetup", ClearEnts)
 
@@ -178,11 +178,11 @@ function GM:PlayerSpawn( ply )
 	ply:SetNWBool("doubletap",false)
 	ply:SetNWBool("deadeye",false)
 	ply:SetGod(true)
-	if GetConVar("gy_cowa_birthday"):GetInt() == 1 then
-		if ply:SteamID() == "STEAM_0:0:21836277" then
-			ply:EmitSound("gy/cowa.wav",40)
-		end
-	end
+	--if GetConVar("gy_cowa_birthday"):GetInt() == 1 then
+	--	if ply:SteamID() == "STEAM_0:0:21836277" then
+	--		ply:EmitSound("gy/cowa.wav",40)
+	--	end
+	--end
 	
 	local EyeAng = ply:EyeAngles()
 	ply:SetEyeAngles(Angle(EyeAng:__index("p"),EyeAng:__index("y"),0)) --Correct slanted views, probably an easier way to do this but w/e
@@ -199,8 +199,10 @@ function GM:PlayerSpawn( ply )
 		ply:SetNWBool("boosted", false)
 		ply:SetJumpPower( 200 )
 		
-		ply:GodEnable()
-		timer.Simple(1.5,function() ply:SetGod(false) end) --Spawn protection
+		--ply:GodEnable()
+		
+		ply:SetGod(true)
+		
 	end
 end
 
@@ -282,8 +284,15 @@ function GM:EntityTakeDamage(ent, dmginfo) --Stolen from TTT, thanks again Badki
 			lastvic = ent
 			lasthp = oldhp
 			
-			map=game.GetMap()
+			--map=game.GetMap()
 			--http.Fetch("http://shaps.us/gungaym/kills/action.php?att="..att.."&vic="..vic.."&wep="..wep.."&oldhp="..oldhp.."&dmg="..dmg.."&map="..map)
 		end
 	end
 end
+
+
+hook.Add("KeyPress", "GG_God_KeyPress", function(ply, key)
+	if IsValid(ply) and ply.GodEnabled and key == IN_ATTACK then
+		ply:SetGod(false)
+	end
+end)

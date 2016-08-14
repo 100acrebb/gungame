@@ -226,9 +226,9 @@ function SWEP:PrimaryAttack()
 	if self:CanPrimaryAttack() then
 		if !self.Owner:KeyDown(IN_RELOAD) then
 		self:FireRocket()
-		if SERVER then
-			self.Owner:SetGod(false)
-		end
+		--if SERVER then
+		--	self.Owner:SetGod(false)
+		--end
 		self.Weapon:EmitSound(self.Primary.Sound)
 		self.Weapon:TakePrimaryAmmo(1)
 		self.Weapon:SendWeaponAnim( ACT_VM_PRIMARYATTACK )

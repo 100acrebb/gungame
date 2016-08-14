@@ -5,6 +5,8 @@
 3 = We don't talk about round state 3
 */
 
+local gy_curround = 0
+
 function SpecialRound(force)
 	if GetConVar("gy_special_rounds"):GetInt() == 0 then return end
 	if true then return end--The lazy man's way of commenting out
@@ -32,11 +34,19 @@ function SpecialRound(force)
 end
 
 function RoundStart()
+
+	--local round = GetGlobalInt("gy_curround",0)
+	--print("pre round",round,"of",GetConVarNumber("gy_rounds"))
+	--round = round + 1
+	gy_curround = gy_curround + 1
+	SetGlobalInt("gy_curround", gy_curround)
+	
+	print("round",round,"of",GetConVar("gy_rounds"):GetInt())
+	
 	--ImportEntities(game.GetMap())
 	SetGlobalInt("RoundState", 0)
 	ClearEnts()
-	round = GetGlobalInt("round")
-	SetGlobalInt("round", round+1)
+
 	RandomizeWeapons()
 	
 	if math.random(1,5) == 7 then -- never gonna happen!
@@ -58,13 +68,31 @@ function RoundStart()
 		end
 		
 		timer.Simple(2,function()
-			v:UnLock() --Unfreeze
 			SetGlobalInt("RoundState",1)--Start the round
+			if IsValid(v) then
+				v:UnLock() --Unfreeze
+			end
 		end)
 	end
 end
 
 function RoundEnd(winner)
+
+	local maxrounds = GetConVar("gy_rounds"):GetInt()
+	SetGlobalInt("MaxRounds", maxrounds)
+	--local maxround = GetGlobalInt("MaxRounds")
+	--local round = GetGlobalInt("gy_curround")
+
+	SetGlobalInt("RoundState", 2)
+
+	if gy_curround >= maxrounds then
+		--timer.Simple(1, function() MapVote.Start(10, false, 12, {"gg_","ttt_"}) end)
+		timer.Simple(1, function() MapVote.Start() end)
+	else
+		timer.Simple(8,function() RoundStart() end)
+		print ("Round starting in 8 seconds")
+	end
+
 	if winner == 99 then
 		PrintMessage(HUD_PRINTCENTER, ("Good job, you all fucked up!"))
 	else	
@@ -73,23 +101,11 @@ function RoundEnd(winner)
 				v:StripWeapons()
 			end
 		end
-		--winner:Give("func_gy_wingun")
-		--winner:SelectWeapon("func_gy_wingun")
+		winner:Give("func_gy_wingun")
+		winner:SelectWeapon("func_gy_wingun")
 		PrintMessage(HUD_PRINTCENTER, (winner:GetName().." won the round!"))
 	end
-	SetGlobalInt("MaxRounds", GetConVarNumber("gy_rounds"))
-	local maxround = GetGlobalInt("MaxRounds")
-	local round = GetGlobalInt("round")
-
-
-	SetGlobalInt("RoundState", 2)
 	
 	
-
-	if round >= maxround then
-		--timer.Simple(1, function() MapVote.Start(10, false, 12, {"gg_","ttt_"}) end)
-		timer.Simple(1, function() MapVote.Start() end)
-	else
-		timer.Simple(8,function() RoundStart() end)
-	end
+	
 end

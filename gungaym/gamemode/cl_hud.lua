@@ -14,7 +14,9 @@ elseif (ScrW() / ScrH()) == 4/3 then
 end
 --If you don't have one of these aspect ratios, then you're SOL
 
-
+local round = 0
+local maxrounds = 0
+local lastertime = nil
 
 --Right off the bat, I'm terrible with HUD's, so enjoy lots of text instead of a nice pretty bunch of health/ammo bars
 --jk to the above, thanks Cowabanga for your mock HUD <3
@@ -154,7 +156,7 @@ function DrawHUD()
 	hook.Run( "HUDDrawPickupHistory" )
 	hook.Run( "DrawDeathNotice", 0.85, 0.04 )
 	ply = LocalPlayer()
-	local round = GetGlobalInt("round")
+	--local round = GetGlobalInt("gy_curround")
 	health = ply:Health()
 	level = ply:GetNWInt("level")
 	if ply:Alive() then
@@ -165,9 +167,9 @@ function DrawHUD()
 				cl_PrevNextWeps(level)
 			end
 			if nextname ~= nil and level == count() then
-				draw.SimpleTextOutlined("Crowbar","nextweapon", ScrW()/1.215, ScrH() /1.046, Color(161,161,161), TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, Color(74,74,74))
+				draw.SimpleTextOutlined("Crowbar","nextweapon", ScrW()/1.215, ScrH() /1.046, Color(161,161,161), TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 1, Color(74,74,74))
 			elseif nextname ~= nil and level < count() then
-				draw.SimpleTextOutlined((nextname),"nextweapon", ScrW()/1.215, ScrH() /1.046, Color(161,161,161), TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, Color(74,74,74))
+				draw.SimpleTextOutlined((nextname),"nextweapon", ScrW()/1.215, ScrH() /1.046, Color(161,161,161), TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 1, Color(74,74,74))
 			end
 		end
 		
@@ -176,21 +178,21 @@ function DrawHUD()
 			local mag_extra = ply:GetAmmoCount(ply:GetActiveWeapon():GetPrimaryAmmoType()) //How much ammunition you have outside the current magazine
 			
 			name = ply:GetActiveWeapon().PrintName
-			draw.SimpleTextOutlined((name) ,"currentweapon", ScrW()/1.215, ScrH()/1.08, Color(255,255,255), TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP,1.5, Color(74,74,74))
+			draw.SimpleTextOutlined((name) ,"currentweapon", ScrW()/1.215, ScrH()/1.08, Color(255,255,255), TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM,1.5, Color(74,74,74))
 			
 
 			
 			if level < count() + 1 then
-				draw.SimpleTextOutlined(("Level: "..level.."/"..count()) ,"lvlindicator", ScrW()/9.9, ScrH() /1.1, Color(255,255,255), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 1, Color(74,74,74))
+				draw.SimpleTextOutlined(("Level: "..level.."/"..count()) ,"lvlindicator", ScrW()/9.9, ScrH() /1.1, Color(255,255,255), TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 1, Color(74,74,74))
 			end
 			
 			--if prevname ~= nil and level ~= 1 then
-				--draw.SimpleText((prevname) ,"prevwep", ScrW()-350, ScrH() - 180, Color(255,255,255), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+				--draw.SimpleText((prevname) ,"prevwep", ScrW()-350, ScrH() - 180, Color(255,255,255), TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
 			--end
 			
 			if mag_left ~= -1 then
-				draw.SimpleTextOutlined((mag_left) ,"remainingammo", ScrW()/1.145, ScrH() - 41, Color(255,255,255), TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1.5, Color(74,74,74))
-				draw.SimpleTextOutlined(("/"..mag_extra) ,"reservedammo", ScrW()/1.145, ScrH() - 50, Color(161,161,161), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 1, Color(74,74,74))
+				draw.SimpleTextOutlined((mag_left) ,"remainingammo", ScrW()/1.145, ScrH() - 41, Color(255,255,255), TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 1.5, Color(74,74,74))
+				draw.SimpleTextOutlined(("/"..mag_extra) ,"reservedammo", ScrW()/1.145, ScrH() - 50, Color(161,161,161), TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 1, Color(74,74,74))
 			end
 			--draw.RoundedBox(10, ScrW()/15, ScrH() - 100, 250, 50, Color(100,25,25,200))
 			draw.RoundedBox(2, ScrW()/9.9, ScrH() / 1.1, ScreenScale(100), ScreenScale(10), Color(106,17,17))
@@ -198,24 +200,24 @@ function DrawHUD()
 			if health > 100 then
 				draw.RoundedBox(2, ScrW()/9.9, ScrH() / 1.1, ScreenScale(math.Min(LocalPlayer():Health()-100),100), ScreenScale(10), Color(33,33,107))
 			end
-			draw.SimpleTextOutlined((health) ,"healthindicator", ScrW()/3.92, ScrH() / asp, Color(255,255,255), TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP,1,Color(74,74,74))
+			draw.SimpleTextOutlined((health) ,"healthindicator", ScrW()/3.92, ScrH() / asp, Color(255,255,255), TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM,1,Color(74,74,74))
 			
 		end
 	end
 	
 	if lastertime == nil or lastertime < CurTime() - 4 then
 		lastertime = CurTime()
-		local round = GetGlobalInt("round")
+		round = GetGlobalInt("gy_curround")
 		maxrounds = GetGlobalInt("MaxRounds")
 	end
 		
-	draw.SimpleTextOutlined(("Round "..round.."/"..maxrounds) ,"reservedammo", ScrW()/10, ScrH()/1.015, Color(255,255,255), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,1,Color(74,74,74))
+	draw.SimpleTextOutlined(("Round "..round.."/"..maxrounds) ,"reservedammo", ScrW()/10, ScrH()/1.015, Color(255,255,255), TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM,1,Color(74,74,74))
 	
 	local spec = GetGlobalVar("gy_special_round")
 	if spec ~= 0 then
 		local text = L.Round[spec]
 		if text ~= nil then
-			draw.SimpleTextOutlined(("Special Round: "..text) ,"specround", ScrW()/1.1, ScrH()/1.013, Color(255,255,255), TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP,1,Color(74,74,74))
+			draw.SimpleTextOutlined(("Special Round: "..text) ,"specround", ScrW()/1.1, ScrH()/1.013, Color(255,255,255), TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM,1,Color(74,74,74))
 		end
 	end
 end

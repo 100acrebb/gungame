@@ -80,13 +80,23 @@ function ply:Demote()
 end
 
 function ply:SetGod(b)
-	if b == true then
+	if not IsValid(self) then return end
+	
+	if b == true and not self.GodEnabled then
 		self:SetRenderMode( RENDERMODE_TRANSALPHA )
 		self:SetColor( Color(255, 255, 255, 100) )
+		self:DrawWorldModel(false)
 		self:GodEnable()
-	elseif b == false then
+		self.GodEnabled = true
+		--self:PrintMessage( HUD_PRINTTALK, "Spawn protection: Enabled." )
+		timer.Simple(5,function() self:SetGod(false) end) --Spawn protection
+	elseif b == false and self.GodEnabled then
+		self:SetRenderMode( RENDERMODE_NORMAL )
 		self:SetColor( Color(255, 255, 255, 255) )
+		self:DrawWorldModel(true)
 		self:GodDisable()
+		self.GodEnabled = false
+		self:PrintMessage( HUD_PRINTTALK, "Spawn protection disabled." )
 	end
 end
 

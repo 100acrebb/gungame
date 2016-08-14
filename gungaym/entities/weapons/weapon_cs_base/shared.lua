@@ -279,9 +279,9 @@ function SWEP:PrimaryAttack()
 		cone = cone * (self.RunPenalty or 1.5)
 	end
 	
-	if SERVER then
-		self.Owner:SetGod(false)
-	end
+	--if SERVER then
+	--	self.Owner:SetGod(false)
+	--end
 	
 	--This will measure how many shots have been fired in the last second (or whatever SprayDecay is)
 	--for use when calculating spray (more shots = more spray)
